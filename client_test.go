@@ -96,6 +96,10 @@ func TestEventRead(t *testing.T) {
 				assert.Equal(t, "eventid", result.Id)
 				assert.Equal(t, "TestDomain", result.Domain)
 				assert.Equal(t, "abc", result.DomainId)
+				assert.Equal(t, 1, len(c.eventsReceived))
+
+				c.Ack(ctx, result.Id)
+				assert.Equal(t, 0, len(c.eventsReceived))
 			}
 			c.Close()
 

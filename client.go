@@ -16,15 +16,21 @@ import (
 	"github.com/pocket5s/dedb-client-go/api"
 )
 
+type message struct {
+	id     string
+	stream string
+}
+
 type Client struct {
-	config       ClientConfig
-	server       api.DeDBClient
-	pool         *redis.Client
-	log          zerolog.Logger
-	shutdown     bool
-	streams      []string
-	eventChannel chan<- *api.Event
-	errorChannel chan<- error
+	config         ClientConfig
+	server         api.DeDBClient
+	pool           *redis.Client
+	log            zerolog.Logger
+	shutdown       bool
+	streams        []string
+	eventChannel   chan<- *api.Event
+	errorChannel   chan<- error
+	eventsReceived map[string]message
 }
 
 func NewClient(config ClientConfig) (*Client, error) {
@@ -38,6 +44,8 @@ func NewClient(config ClientConfig) (*Client, error) {
 	c := &Client{config: config}
 	c.streams = make([]string, 0)
 	c.log = log.With().Str("logger", "DeDBClient").Logger()
+	c.eventsReceived = make(map[string]message, 0)
+
 	for _, s := range config.Streams {
 		c.streams = append(c.streams, "dedb:stream:"+s)
 	}
@@ -60,6 +68,17 @@ func (c *Client) GetDomain(ctx context.Context, request *api.GetDomainRequest) (
 
 func (c *Client) GetDomainIds(ctx context.Context, request *api.GetDomainIdsRequest) (*api.GetDomainIdsResponse, error) {
 	return c.server.GetDomainIds(ctx, request)
+}
+
+func (c *Client) Ack(ctx context.Context, eventId string) {
+	m, ok := c.eventsReceived[eventId]
+	if ok {
+		count, _ := c.pool.XAck(ctx, c.config.ConsumerGroup, m.stream, m.id).Result()
+		if count != 1 {
+			c.log.Warn().Msgf("ack not successful for stream %s, event id %s", m.stream, eventId)
+		}
+		delete(c.eventsReceived, eventId)
+	}
 }
 
 func (c *Client) Connect(ctx context.Context) error {
@@ -161,6 +180,11 @@ func (c *Client) listenForEvents() {
 						c.errorChannel <- err
 					} else {
 						c.eventChannel <- event
+						m := message{
+							id:     msg.ID,
+							stream: stream.Stream,
+						}
+						c.eventsReceived[event.Id] = m
 					}
 				}
 			}
