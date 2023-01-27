@@ -150,6 +150,7 @@ func (c *Client) listenForEvents() {
 					err = Decode(event, msgData.(string))
 					if err != nil {
 						c.log.Error().Err(err).Msgf("could not decode message")
+						c.errorChannel <- err
 					} else {
 						c.eventChannel <- event
 					}
