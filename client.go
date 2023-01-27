@@ -3,6 +3,7 @@ package dedb_client_go
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -92,54 +93,61 @@ func (c *Client) Close() {
 }
 
 func (c *Client) listenForEvents() {
-	// see if there is a consumer group already established
+	// see if there is a consumer group already established for each stream
 	c.log.Info().Msgf("checking for consumer group %s on each stream requested", c.config.ConsumerGroup)
-	groups, err := c.pool.XInfoGroups(context.Background(), c.streams[0]).Result()
-	if err != nil {
-		c.log.Error().Err(err).Msgf("could not query for consumer groups on stream %s", c.streams[0])
-	} else {
-		var found bool
-		for _, g := range groups {
-			if g.Name == c.config.ConsumerGroup {
-				found = true
-			}
-		}
-
-		if !found {
-			c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
-			status, err := c.pool.XGroupCreate(context.Background(), c.streams[0], c.config.ConsumerGroup, "$").Result()
-			if err != nil {
-				c.log.Error().Err(err).Msgf("could not create group %s for stream %s", c.config.ConsumerGroup, c.streams[0])
-			} else {
-				c.log.Info().Msgf("connecting to stream %s with group %s resulted in status %s", c.streams[0], c.config.ConsumerGroup, status)
-			}
-		}
-
-	}
-
-	// group established, now create consumer
 	id := c.getConsumerId()
-	count, err := c.pool.XGroupCreateConsumer(context.Background(), c.streams[0], c.config.ConsumerGroup, id).Result()
-	if err != nil {
-		c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
-	} else {
-		c.log.Info().Msgf("created consumer %s on stream %s with status %d", id, c.streams[0], count)
+	streamArgs := make([]string, 0)
+	for _, stream := range c.streams {
+		groups, err := c.pool.XInfoGroups(context.Background(), stream).Result()
+		if err != nil {
+			c.log.Error().Err(err).Msgf("could not query for consumer groups on stream %s", stream)
+		} else {
+			var found bool
+			for _, g := range groups {
+				if g.Name == c.config.ConsumerGroup {
+					found = true
+				}
+			}
+
+			if !found {
+				c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
+				status, err := c.pool.XGroupCreate(context.Background(), stream, c.config.ConsumerGroup, "$").Result()
+				if err != nil {
+					c.log.Error().Err(err).Msgf("could not create group %s for stream %s", c.config.ConsumerGroup, stream)
+				} else {
+					c.log.Info().Msgf("connecting to stream %s with group %s resulted in status %s", stream, c.config.ConsumerGroup, status)
+				}
+			}
+
+			// group established, now create consumer
+			count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, c.config.ConsumerGroup, id).Result()
+			if err != nil {
+				c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
+			} else {
+				c.log.Info().Msgf("created consumer %s on stream %s with status %d", id, stream, count)
+				streamArgs = append(streamArgs, stream, ">")
+			}
+		}
 	}
 
 	// now read the streams
 	c.log.Info().Msgf("consumer established, reading streams...")
 	for c.shutdown == false {
+		// TODO: check for abandoned messages
 		args := &redis.XReadGroupArgs{
 			Group:    c.config.ConsumerGroup,
 			Consumer: id,
 			Count:    1,
 			NoAck:    true,
-			Block:    1 * time.Second,
-			Streams:  []string{c.streams[0], ">"},
+			Block:    5 * time.Second,
+			Streams:  streamArgs,
 		}
 		result, err := c.pool.XReadGroup(context.Background(), args).Result()
-		if err != nil && err != redis.Nil { // redis.Nil means nothing was there and that is ok
+		if err != nil && err == redis.Nil { // redis.Nil means nothing was there and that is ok
+			randomSleep() // little CPU saver (?)
+		} else if err != nil {
 			c.log.Error().Err(err).Msgf("error reading stream(s) for consumer %s", id)
+			c.errorChannel <- err
 		} else {
 			for _, stream := range result {
 				for _, msg := range stream.Messages {
@@ -164,6 +172,14 @@ func (c *Client) listenForEvents() {
 func (c *Client) getConsumerId() string {
 	// TODO: this is temp, make it more dynamic
 	return c.config.ConsumerGroup + "_1"
+}
+
+func randomSleep() {
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(s1)
+	var nap time.Duration
+	nap = time.Duration(r.Intn(1000) + 10)
+	time.Sleep(nap * time.Millisecond)
 }
 
 func (c *Client) connectToGrpcService(address string, service string) *grpc.ClientConn {

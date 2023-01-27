@@ -2,6 +2,7 @@ package dedb_client_go
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -60,14 +61,19 @@ func TestEventRead(t *testing.T) {
 				panic(err)
 			}
 			log.Info().Msgf("encoded: %s", encoded)
+			md := ""
+			jsonStr, err := json.Marshal(tc.event.Metadata)
+			if err == nil {
+				md = string(jsonStr)
+			}
 			args := redis.XAddArgs{
 				Stream: "dedb:stream:" + tc.event.Domain,
 				Values: map[string]interface{}{
 					"id":        tc.event.Id,
 					"name":      tc.event.Name,
 					"timestamp": tc.event.Timestamp,
-					//"metadata":  tc.event.Metadata,
-					"data": encoded,
+					"metadata":  md,
+					"data":      encoded,
 				},
 			}
 			result, err := pool.XAdd(ctx, &args).Result()
