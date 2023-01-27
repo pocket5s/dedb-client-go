@@ -7,7 +7,7 @@ test:
 		go get github.com/rakyll/gotest; \
 		go install github.com/rakyll/gotest; \
 	fi 
-	gotest -v ./internal
+	gotest -v .
 
 cover:
 	gotest -covermode=count -coverpkg=. -coverprofile=profile.cov ./... fmt
@@ -37,7 +37,7 @@ genproto:
 	protoc --go_out=plugins=grpc:. \
       --proto_path=./ \
       dedb.proto
-	mv github.com/pocket5s/dedb/* api/
+	mv github.com/pocket5s/dedb-client-go/api/* api/
 	rm -fr github.com
 
 

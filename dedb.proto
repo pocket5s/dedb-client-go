@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/pocket5s/dedb";
+option go_package = "github.com/pocket5s/dedb-client-go/api";
 import "google/rpc/status.proto";
 import "google/protobuf/any.proto";
 package dedb;

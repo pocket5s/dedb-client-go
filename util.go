@@ -1,4 +1,4 @@
-package internal
+package dedb_client_go
 
 import (
 	"time"
@@ -29,7 +29,7 @@ func Decode(entity proto.Message, data string) error {
 	return un.Unmarshal([]byte(data), entity)
 }
 
-func newPool(useSearch bool, baseConfig Config, log *zerolog.Logger) (*redis.Client, error) {
+func newPool(useSearch bool, baseConfig ClientConfig, log *zerolog.Logger) (*redis.Client, error) {
 	type commonConfig struct {
 		Server        string
 		Password      string
