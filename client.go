@@ -205,14 +205,14 @@ func (c *Client) getConsumerId() string {
 		if err != nil {
 			c.log.Warn().Err(err).Msgf("could not determine if key %s exists", key)
 		} else if exists == 0 {
-			c.pool.SetEX(context.Background(), key, "1", 30*time.Second)
+			c.pool.SetEX(context.Background(), key, "1", 60*time.Second)
 			return key
 		}
 	}
 }
 
 func (c *Client) pingClientKey(key string) {
-	c.pool.Expire(context.Background(), key, 30*time.Second)
+	c.pool.Expire(context.Background(), key, 60*time.Second)
 }
 
 func randomSleep() {
