@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -189,13 +190,29 @@ func (c *Client) listenForEvents() {
 				}
 			}
 		}
+		go c.pingClientKey(id)
 	}
 	c.log.Info().Msgf("shutdown invoked for consumer %s", id)
 }
 
 func (c *Client) getConsumerId() string {
-	// TODO: this is temp, make it more dynamic
-	return c.config.ConsumerGroup + "_1"
+	var counter int
+	var name string = c.config.ConsumerGroup
+	for {
+		counter++
+		key := name + "_" + strconv.Itoa(counter)
+		exists, err := c.pool.Exists(context.Background(), key).Result()
+		if err != nil {
+			c.log.Warn().Err(err).Msgf("could not determine if key %s exists", key)
+		} else if exists == 0 {
+			c.pool.SetEX(context.Background(), key, "1", 30*time.Second)
+			return key
+		}
+	}
+}
+
+func (c *Client) pingClientKey(key string) {
+	c.pool.Expire(context.Background(), key, 30*time.Second)
 }
 
 func randomSleep() {
