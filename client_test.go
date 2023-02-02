@@ -23,7 +23,8 @@ func TestEventRead(t *testing.T) {
 		Streams:       []string{"TestDomain"},
 		ConsumerGroup: "unittest",
 		RedisDbConfig: RedisDbConfig{
-			Server: "redis:6379",
+			DbAddress: "redis:6379",
+			DbIndex:   0,
 		},
 		EventChannel: eventChan,
 	}
