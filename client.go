@@ -109,6 +109,7 @@ func (c *Client) Connect(ctx context.Context) error {
 
 func (c *Client) Close() {
 	c.shutdown = true
+	time.Sleep(7 * time.Second) // allow the event listener goroutine to shutdown
 	c.pool.Close()
 }
 
@@ -162,30 +163,33 @@ func (c *Client) listenForEvents() {
 			Block:    5 * time.Second,
 			Streams:  streamArgs,
 		}
-		result, err := c.pool.XReadGroup(context.Background(), args).Result()
-		if err != nil && err == redis.Nil { // redis.Nil means nothing was there and that is ok
-			randomSleep() // little CPU saver (?)
-		} else if err != nil {
-			c.log.Error().Err(err).Msgf("error reading stream(s) for consumer %s", id)
-			c.errorChannel <- err
-		} else {
-			for _, stream := range result {
-				for _, msg := range stream.Messages {
-					values := msg.Values
-					msgData := values["data"]
-					c.log.Info().Msgf("stream: %s, msg: %s", stream.Stream, msgData)
-					event := &api.Event{}
-					err = Decode(event, msgData.(string))
-					if err != nil {
-						c.log.Error().Err(err).Msgf("could not decode message")
-						c.errorChannel <- err
-					} else {
-						c.eventChannel <- event
-						m := message{
-							id:     msg.ID,
-							stream: stream.Stream,
+		// make sure shutdown was not called while waiting for block
+		if c.shutdown == false {
+			result, err := c.pool.XReadGroup(context.Background(), args).Result()
+			if err != nil && err == redis.Nil { // redis.Nil means nothing was there and that is ok
+				randomSleep() // little CPU saver (?)
+			} else if err != nil {
+				c.log.Error().Err(err).Msgf("error reading stream(s) for consumer %s", id)
+				c.errorChannel <- err
+			} else {
+				for _, stream := range result {
+					for _, msg := range stream.Messages {
+						values := msg.Values
+						msgData := values["data"]
+						c.log.Info().Msgf("stream: %s, msg: %s", stream.Stream, msgData)
+						event := &api.Event{}
+						err = Decode(event, msgData.(string))
+						if err != nil {
+							c.log.Error().Err(err).Msgf("could not decode message")
+							c.errorChannel <- err
+						} else {
+							c.eventChannel <- event
+							m := message{
+								id:     msg.ID,
+								stream: stream.Stream,
+							}
+							c.eventsReceived[event.Id] = m
 						}
-						c.eventsReceived[event.Id] = m
 					}
 				}
 			}
@@ -193,6 +197,8 @@ func (c *Client) listenForEvents() {
 		go c.pingClientKey(id)
 	}
 	c.log.Info().Msgf("shutdown invoked for consumer %s", id)
+	// timeout this client id to allow another instance to claim it
+	c.pool.Expire(context.Background(), id, 1*time.Microsecond)
 }
 
 func (c *Client) getConsumerId() string {
