@@ -20,7 +20,7 @@ services:
       - ../:/go/src/github.com/pocket5s/dedb-client-go
       - ~/.ssh/:/root/.ssh/
     ports:
-      - 50001:50001
+      - 50002:50001
     networks:
       - dedb-net
 networks:
