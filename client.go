@@ -115,8 +115,10 @@ func (c *Client) Connect(ctx context.Context) error {
 
 func (c *Client) Close() {
 	c.shutdown = true
-	time.Sleep(7 * time.Second) // allow the event listener goroutine to shutdown
-	c.pool.Close()
+	if c.pool != nil {
+		time.Sleep(7 * time.Second) // allow the event listener goroutine to shutdown
+		c.pool.Close()
+	}
 }
 
 func (c *Client) listenForEvents() {
