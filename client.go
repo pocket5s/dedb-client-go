@@ -44,6 +44,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 	c.eventsReceived = make(map[string]message, 0)
 
 	if config.ConsumerGroup != "" {
+        c.log.Info().Msgf("setting up consumer group %s", config.ConsumerGroup")
 		if len(config.Streams) == 0 {
 			return nil, fmt.Errorf("Streams config entry required")
 		}
