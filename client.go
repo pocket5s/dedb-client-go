@@ -85,7 +85,7 @@ func (c *Client) Ack(ctx context.Context, eventId string) {
 
 func (c *Client) Connect(ctx context.Context) error {
 	// connect to DeDB server
-	c.log.Info().Msgf("connecting to DeDB server")
+	c.log.Info().Msgf("connecting to DeDB server at %s", c.config.Server)
 	for c.server == nil {
 		if c.shutdown {
 			return nil
