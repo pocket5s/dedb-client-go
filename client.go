@@ -38,19 +38,19 @@ func NewClient(config ClientConfig) (*Client, error) {
 	if config.Server == "" {
 		return nil, fmt.Errorf("Server config entry required")
 	}
-	if len(config.Streams) == 0 {
-		return nil, fmt.Errorf("Streams config entry required")
-	}
 
 	c := &Client{config: config}
-	c.streams = make([]string, 0)
 	c.log = log.With().Str("logger", "DeDBClient").Logger()
 	c.eventsReceived = make(map[string]message, 0)
 
-	for _, s := range config.Streams {
-		c.streams = append(c.streams, "dedb:stream:"+s)
-	}
 	if config.ConsumerGroup != "" {
+		if len(config.Streams) == 0 {
+			return nil, fmt.Errorf("Streams config entry required")
+		}
+		c.streams = make([]string, 0)
+		for _, s := range config.Streams {
+			c.streams = append(c.streams, "dedb:stream:"+s)
+		}
 		c.eventChannel = config.EventChannel
 		c.errorChannel = config.ErrorChannel
 		//return nil, fmt.Errorf("ConsumerGroup config entry required")
