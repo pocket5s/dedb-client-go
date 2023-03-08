@@ -1,7 +1,6 @@
 syntax = "proto3";
 option go_package = "github.com/pocket5s/dedb-client-go/api";
 import "google/rpc/status.proto";
-import "google/protobuf/any.proto";
 package dedb;
 
 service DeDB {
@@ -66,5 +65,5 @@ message Event {
   string domain                = 5;
   string domain_id             = 6;
   map<string, string> metadata = 7;
-  google.protobuf.Any data     = 8;
+  bytes data                   = 8;
 }
