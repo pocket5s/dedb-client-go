@@ -85,26 +85,28 @@ func (c *Client) Ack(ctx context.Context, eventId string) {
 
 func (c *Client) Connect(ctx context.Context) error {
 	// connect to DeDB server
-	/*
-		for c.server == nil {
-			conn := c.connectToGrpcService(c.config.Server, "dedb")
-			if conn != nil {
-				c.server = api.NewDeDBClient(conn)
-				c.log.Info().Msg("connected to DeDB")
-			} else {
-				time.Sleep(2 * time.Second)
-			}
-		}
-	*/
+    c.log.Info().Msgf("connecting to DeDB server")
+    for c.server == nil {
+        conn := c.connectToGrpcService(c.config.Server, "dedb")
+        if conn != nil {
+            c.server = api.NewDeDBClient(conn)
+            c.log.Info().Msg("connected to DeDB")
+        } else {
+            c.log.Warn().Msg("could not connect to DeDB server")
+            time.Sleep(2 * time.Second)
+        }
+    }
 
 	// connect to redis server
-	pool, err := newPool(false, c.config, &c.log)
-	if err != nil {
-		return err
-	}
-	c.pool = pool
-	c.log.Info().Msg("connected to redis")
-	go c.listenForEvents()
+    if c.config.ConsumerGroup != "" {
+        pool, err := newPool(false, c.config, &c.log)
+        if err != nil {
+            return err
+        }
+        c.pool = pool
+        c.log.Info().Msg("connected to redis")
+        go c.listenForEvents()
+    }
 	return nil
 }
 
