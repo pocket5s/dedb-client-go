@@ -87,6 +87,9 @@ func (c *Client) Connect(ctx context.Context) error {
 	// connect to DeDB server
 	c.log.Info().Msgf("connecting to DeDB server")
 	for c.server == nil {
+		if c.shutdown {
+			return nil
+		}
 		conn := c.connectToGrpcService(c.config.Server, "dedb")
 		if conn != nil {
 			c.server = api.NewDeDBClient(conn)
