@@ -50,12 +50,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 	for _, s := range config.Streams {
 		c.streams = append(c.streams, "dedb:stream:"+s)
 	}
-	if config.ConsumerGroup == "" {
-		return nil, fmt.Errorf("ConsumerGroup config entry required")
+	if config.ConsumerGroup != "" {
+		c.eventChannel = config.EventChannel
+		c.errorChannel = config.ErrorChannel
+		//return nil, fmt.Errorf("ConsumerGroup config entry required")
 	}
 
-	c.eventChannel = config.EventChannel
-	c.errorChannel = config.ErrorChannel
 	return c, nil
 }
 
@@ -115,6 +115,10 @@ func (c *Client) Close() {
 
 func (c *Client) listenForEvents() {
 	// see if there is a consumer group already established for each stream
+	if c.config.ConsumerGroup == "" {
+		c.log.Info().Msg("no consumer group specified. Will not listen for events")
+		return
+	}
 	c.log.Info().Msgf("checking for consumer group %s on each stream requested", c.config.ConsumerGroup)
 	id := c.getConsumerId()
 	streamArgs := make([]string, 0)
