@@ -197,17 +197,17 @@ func (c *Client) listenForEvents() {
 							c.errorChannel <- err
 						} else {
 							sDec, err := b64.StdEncoding.DecodeString(string(event.Data))
-                            if err != nil {
-                                c.log.Error().Err(err).Msgf("could not decode data on event")
-                                c.errorChannel <-
-                            } else {
-                                event.Data = sDec
-                                c.eventChannel <- event
-                                m := message{
-                                    id:     msg.ID,
-                                    stream: stream.Stream,
-                                }
-                            }
+							if err != nil {
+								c.log.Error().Err(err).Msgf("could not decode data on event")
+								c.errorChannel <- err
+							} else {
+								event.Data = sDec
+								c.eventChannel <- event
+								m := message{
+									id:     msg.ID,
+									stream: stream.Stream,
+								}
+							}
 							c.eventsReceived[event.Id] = m
 						}
 					}
