@@ -153,7 +153,7 @@ func (c *Client) listenForEvents() {
 			}
 
 			// group established, now create consumer
-			count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, c.config.ConsumerGroup, id).Result()
+			count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, "dedb:client:consumer_group:"+c.config.ConsumerGroup, id).Result()
 			if err != nil {
 				c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
 			} else {
