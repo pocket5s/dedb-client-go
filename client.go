@@ -137,7 +137,7 @@ func (c *Client) listenForEvents() {
 		} else {
 			var found bool
 			for _, g := range groups {
-				if g.Name == c.config.ConsumerGroup {
+				if g.Name == "dedb:client:consumer_group:"+c.config.ConsumerGroup {
 					found = true
 				}
 			}
