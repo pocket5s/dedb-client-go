@@ -211,7 +211,7 @@ func (c *Client) listenForEvents() {
 	}
 	c.log.Info().Msgf("shutdown invoked for consumer %s", id)
 	// timeout this client id to allow another instance to claim it
-	c.pool.Expire(context.Background(), id, 1*time.Microsecond)
+	c.pool.Expire(context.Background(), id, 1*time.Second)
 }
 
 func (c *Client) getConsumerId() string {
