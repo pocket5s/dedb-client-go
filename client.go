@@ -144,7 +144,7 @@ func (c *Client) listenForEvents() {
 
 			if !found {
 				c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
-				status, err := c.pool.XGroupCreate(context.Background(), stream, c.config.ConsumerGroup, "$", "MKSTREAM").Result()
+				status, err := c.pool.XGroupCreateMkStream(context.Background(), stream, c.config.ConsumerGroup, "$").Result()
 				if err != nil {
 					c.log.Error().Err(err).Msgf("could not create group %s for stream %s", c.config.ConsumerGroup, stream)
 				} else {
