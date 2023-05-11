@@ -142,9 +142,10 @@ func (c *Client) listenForEvents() {
 				}
 			}
 
+            groupName := "dedb:client:consumer_group:"_c.config.ConsumerGroup
 			if !found {
 				c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
-				status, err := c.pool.XGroupCreateMkStream(context.Background(), stream, c.config.ConsumerGroup, "$").Result()
+				status, err := c.pool.XGroupCreateMkStream(context.Background(), stream, groupName, "$").Result()
 				if err != nil {
 					c.log.Error().Err(err).Msgf("could not create group %s for stream %s", c.config.ConsumerGroup, stream)
 				} else {
@@ -153,7 +154,7 @@ func (c *Client) listenForEvents() {
 			}
 
 			// group established, now create consumer
-			count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, "dedb:client:consumer_group:"+c.config.ConsumerGroup, id).Result()
+			count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, groupName, id).Result()
 			if err != nil {
 				c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
 			} else {
@@ -168,7 +169,7 @@ func (c *Client) listenForEvents() {
 	for c.shutdown == false {
 		// TODO: check for abandoned messages
 		args := &redis.XReadGroupArgs{
-			Group:    c.config.ConsumerGroup,
+            Group:    "dedb:client:consumer_group:"+c.config.ConsumerGroup,
 			Consumer: id,
 			Count:    1,
 			NoAck:    true,
