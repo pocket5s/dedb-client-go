@@ -142,7 +142,7 @@ func (c *Client) listenForEvents() {
 				}
 			}
 
-            groupName := "dedb:client:consumer_group:"_c.config.ConsumerGroup
+			groupName := "dedb:client:consumer_group:" + c.config.ConsumerGroup
 			if !found {
 				c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
 				status, err := c.pool.XGroupCreateMkStream(context.Background(), stream, groupName, "$").Result()
@@ -169,7 +169,7 @@ func (c *Client) listenForEvents() {
 	for c.shutdown == false {
 		// TODO: check for abandoned messages
 		args := &redis.XReadGroupArgs{
-            Group:    "dedb:client:consumer_group:"+c.config.ConsumerGroup,
+			Group:    "dedb:client:consumer_group:" + c.config.ConsumerGroup,
 			Consumer: id,
 			Count:    1,
 			NoAck:    true,
