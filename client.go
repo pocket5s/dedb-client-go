@@ -207,8 +207,8 @@ func (c *Client) listenForEvents() {
 									id:     msg.ID,
 									stream: stream.Stream,
 								}
+								c.eventsReceived[event.Id] = m
 							}
-							c.eventsReceived[event.Id] = m
 						}
 					}
 				}
