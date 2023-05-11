@@ -2,7 +2,6 @@ package dedb_client_go
 
 import (
 	"context"
-	b64 "encoding/base64"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -196,19 +195,12 @@ func (c *Client) listenForEvents() {
 							c.log.Error().Err(err).Msgf("could not decode message")
 							c.errorChannel <- err
 						} else {
-							sDec, err := b64.StdEncoding.DecodeString(string(event.Data))
-							if err != nil {
-								c.log.Error().Err(err).Msgf("could not decode data on event")
-								c.errorChannel <- err
-							} else {
-								event.Data = sDec
-								c.eventChannel <- event
-								m := message{
-									id:     msg.ID,
-									stream: stream.Stream,
-								}
-								c.eventsReceived[event.Id] = m
+							c.eventChannel <- event
+							m := message{
+								id:     msg.ID,
+								stream: stream.Stream,
 							}
+							c.eventsReceived[event.Id] = m
 						}
 					}
 				}
