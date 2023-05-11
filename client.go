@@ -188,16 +188,13 @@ func (c *Client) listenForEvents() {
 					for _, msg := range stream.Messages {
 						values := msg.Values
 						msgData := values["data"]
-						c.log.Info().Msgf("stream: %s, msg: %s", stream.Stream, msgData)
+						c.log.Debug().Msgf("stream: %s, msg: %s", stream.Stream, msgData)
 						event := &api.Event{}
 						err = Decode(event, msgData.(string))
 						if err != nil {
 							c.log.Error().Err(err).Msgf("could not decode message")
 							c.errorChannel <- err
 						} else {
-							c.log.Debug().Msgf("Event Data: %v", event.Data)
-							//sDec, _ := b64.StdEncoding.DecodeString(string(event.Data))
-							//event.Data = sDec
 							c.eventChannel <- event
 							m := message{
 								id:     msg.ID,
