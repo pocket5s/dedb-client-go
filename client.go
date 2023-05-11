@@ -132,7 +132,7 @@ func (c *Client) listenForEvents() {
 	streamArgs := make([]string, 0)
 	for _, stream := range c.streams {
 		groups, err := c.pool.XInfoGroups(context.Background(), stream).Result()
-		if err != nil {
+		if err != nil && err.Error() != "ERR no such key" {
 			c.log.Error().Err(err).Msgf("could not query for consumer groups on stream %s", stream)
 		} else {
 			var found bool
