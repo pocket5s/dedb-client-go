@@ -223,6 +223,7 @@ func (c *Client) getConsumerId() string {
 		exists, err := c.pool.Exists(context.Background(), key).Result()
 		if err != nil {
 			c.log.Warn().Err(err).Msgf("could not determine if key %s exists", key)
+			time.Sleep(5 * time.Second)
 		} else if exists == 0 {
 			c.pool.SetEX(context.Background(), key, "1", 60*time.Second)
 			return key
