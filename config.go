@@ -18,6 +18,7 @@ type RedisDbConfig struct {
 
 type RedisSearchConfig struct {
 	DbAddress     string `envconfig:"REDIS_SEARCH_DB_ADDRESS"`
+	Username      string `envconfig:"DEDB_REDIS_DB_USERNAME"`
 	Password      string `envconfig:"REDIS_SEARCH_PASSWORD"`
 	RedisCa       string `envconfig:"REDIS_SEARCH_CA"`
 	RedisUserCert string `envconfig:"REDIS_SEARCH_USER_CERT"`
