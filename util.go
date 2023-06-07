@@ -32,6 +32,7 @@ func Decode(entity proto.Message, data string) error {
 func newPool(useSearch bool, baseConfig ClientConfig, log *zerolog.Logger) (*redis.Client, error) {
 	type commonConfig struct {
 		DbAddress     string
+		Username      string
 		Password      string
 		RedisCa       string
 		RedisUserCert string
@@ -101,6 +102,7 @@ func newPool(useSearch bool, baseConfig ClientConfig, log *zerolog.Logger) (*red
 		return redis.NewClient(&redis.Options{
 			Addr:         config.DbAddress,
 			Password:     config.Password,
+			Username:     config.Username,
 			MinIdleConns: config.MinIdle,
 			PoolSize:     config.MaxActive,
 			DB:           config.DbIndex,

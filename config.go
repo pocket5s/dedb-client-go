@@ -4,6 +4,7 @@ import "github.com/pocket5s/dedb-client-go/api"
 
 type RedisDbConfig struct {
 	DbAddress     string `envconfig:"DEDB_REDIS_DB_ADDRESS"`
+	Username      string `envconfig:"DEDB_REDIS_DB_USERNAME"`
 	Password      string `envconfig:"DEDB_REDIS_DB_PASSWORD"`
 	RedisCa       string `envconfig:"DEDB_REDIS_DB_CA"`
 	RedisUserCert string `envconfig:"DEDB_REDIS_DB_USER_CERT"`
