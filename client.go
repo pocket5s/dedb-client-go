@@ -159,7 +159,8 @@ func (c *Client) listenForEvents() {
 				c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
 			} else {
 				c.log.Info().Msgf("created consumer %s on stream %s with status %d", id, stream, count)
-				streamArgs = append(streamArgs, stream, ">")
+				//streamArgs = append(streamArgs, stream, ">")
+				streamArgs = append(streamArgs, stream)
 			}
 		}
 	}
