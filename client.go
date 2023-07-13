@@ -164,6 +164,10 @@ func (c *Client) listenForEvents() {
 			}
 		}
 	}
+	l := len(streamArgs)
+	for i := 0; i < l; i++ {
+		streamArgs = append(streamArgs, ">")
+	}
 
 	// now read the streams
 	c.log.Info().Msgf("consumer established, reading streams...")
