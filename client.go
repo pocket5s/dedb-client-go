@@ -173,7 +173,6 @@ func (c *Client) listenForEvents() {
 	c.log.Info().Msgf("consumer established, reading streams...")
 	for c.shutdown == false {
 		// TODO: check for abandoned messages
-		c.log.Info().Msgf("connecting to streams: %v", streamArgs)
 		args := &redis.XReadGroupArgs{
 			Group:    "dedb:client:consumer_group:" + c.config.ConsumerGroup,
 			Consumer: id,
