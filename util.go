@@ -100,22 +100,24 @@ func newPool(useSearch bool, baseConfig ClientConfig, log *zerolog.Logger) (*red
 	} else {
 		log.Info().Msgf("setting pool for non TLS enabled Redis server: %s, min idle: %d, max active: %d, idle timeout: %d", config.DbAddress, config.MinIdle, config.MaxActive, config.IdleTimeout)
 		if strings.Contains(config.DbAddress, "redis://") {
-			opt, err := redis.ParseURL("redis://:qwerty@localhost:6379/1")
+			log.Info().Msgf("CONNECTING VIA redis:// URL")
+			opt, err := redis.ParseURL(config.DbAddress)
 			if err != nil {
 				log.Error().Err(err).Msgf("could not connect to %s", config.DbAddress)
 				return nil, err
 			}
 			return redis.NewClient(opt), nil
+		} else {
+			return redis.NewClient(&redis.Options{
+				Addr:         config.DbAddress,
+				Password:     config.Password,
+				Username:     config.Username,
+				MinIdleConns: config.MinIdle,
+				PoolSize:     config.MaxActive,
+				DB:           config.DbIndex,
+				// IdleTimeout:  time.Duration(config.IdleTimeout) * time.Second,
+			}), nil
 		}
-		return redis.NewClient(&redis.Options{
-			Addr:         config.DbAddress,
-			Password:     config.Password,
-			Username:     config.Username,
-			MinIdleConns: config.MinIdle,
-			PoolSize:     config.MaxActive,
-			DB:           config.DbIndex,
-			// IdleTimeout:  time.Duration(config.IdleTimeout) * time.Second,
-		}), nil
 	}
 	return nil, nil
 }
