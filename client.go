@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -54,7 +54,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 		}
 		c.eventChannel = config.EventChannel
 		c.errorChannel = config.ErrorChannel
-		//return nil, fmt.Errorf("ConsumerGroup config entry required")
+		// return nil, fmt.Errorf("ConsumerGroup config entry required")
 	}
 
 	return c, nil
@@ -159,7 +159,7 @@ func (c *Client) listenForEvents() {
 				c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
 			} else {
 				c.log.Info().Msgf("created consumer %s on stream %s with status %d", id, stream, count)
-				//streamArgs = append(streamArgs, stream, ">")
+				// streamArgs = append(streamArgs, stream, ">")
 				streamArgs = append(streamArgs, stream)
 			}
 		}
@@ -230,7 +230,7 @@ func (c *Client) getConsumerId() string {
 			c.log.Warn().Err(err).Msgf("could not determine if key %s exists", key)
 			time.Sleep(5 * time.Second)
 		} else if exists == 0 {
-			c.pool.SetEX(context.Background(), key, "1", 60*time.Second)
+			c.pool.Set(context.Background(), key, "1", 60*time.Second)
 			return key
 		}
 	}

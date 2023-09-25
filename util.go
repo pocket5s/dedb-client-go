@@ -1,9 +1,7 @@
 package dedb_client_go
 
 import (
-	"time"
-
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -106,7 +104,7 @@ func newPool(useSearch bool, baseConfig ClientConfig, log *zerolog.Logger) (*red
 			MinIdleConns: config.MinIdle,
 			PoolSize:     config.MaxActive,
 			DB:           config.DbIndex,
-			IdleTimeout:  time.Duration(config.IdleTimeout) * time.Second,
+			// IdleTimeout:  time.Duration(config.IdleTimeout) * time.Second,
 		}), nil
 	}
 	return nil, nil
