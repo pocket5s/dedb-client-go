@@ -1,6 +1,8 @@
 package dedb_client_go
 
 import (
+	"strings"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -97,6 +99,14 @@ func newPool(useSearch bool, baseConfig ClientConfig, log *zerolog.Logger) (*red
 		*/
 	} else {
 		log.Info().Msgf("setting pool for non TLS enabled Redis server: %s, min idle: %d, max active: %d, idle timeout: %d", config.DbAddress, config.MinIdle, config.MaxActive, config.IdleTimeout)
+		if strings.Contains(config.DbAddress, "redis://") {
+			opt, err := redis.ParseURL("redis://:qwerty@localhost:6379/1")
+			if err != nil {
+				log.Error().Err(err).Msgf("could not connect to %s", config.DbAddress)
+				return nil, err
+			}
+			return redis.NewClient(opt), nil
+		}
 		return redis.NewClient(&redis.Options{
 			Addr:         config.DbAddress,
 			Password:     config.Password,
