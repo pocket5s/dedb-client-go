@@ -38,4 +38,5 @@ type ClientConfig struct {
 	ConsumerGroup     string
 	EventChannel      chan<- *api.Event
 	ErrorChannel      chan<- error
+	StartStreamId     string
 }

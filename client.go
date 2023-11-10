@@ -123,52 +123,110 @@ func (c *Client) Close() {
 
 func (c *Client) listenForEvents() {
 	// see if there is a consumer group already established for each stream
-	if c.config.ConsumerGroup == "" {
-		c.log.Info().Msg("no consumer group specified. Will not listen for events")
-		return
-	}
-	c.log.Info().Msgf("checking for consumer group %s on each stream requested", c.config.ConsumerGroup)
-	id := c.getConsumerId()
 	streamArgs := make([]string, 0)
-	for _, stream := range c.streams {
-		groups, err := c.pool.XInfoGroups(context.Background(), stream).Result()
-		if err != nil && err.Error() != "ERR no such key" {
-			c.log.Error().Err(err).Msgf("could not query for consumer groups on stream %s", stream)
-		} else {
-			var found bool
-			for _, g := range groups {
-				if g.Name == "dedb:client:consumer_group:"+c.config.ConsumerGroup {
-					found = true
-				}
-			}
-
-			groupName := "dedb:client:consumer_group:" + c.config.ConsumerGroup
-			if !found {
-				c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
-				status, err := c.pool.XGroupCreateMkStream(context.Background(), stream, groupName, "$").Result()
-				if err != nil {
-					c.log.Error().Err(err).Msgf("could not create group %s for stream %s", c.config.ConsumerGroup, stream)
-				} else {
-					c.log.Info().Msgf("connecting to stream %s with group %s resulted in status %s", stream, c.config.ConsumerGroup, status)
-				}
-			}
-
-			// group established, now create consumer
-			count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, groupName, id).Result()
-			if err != nil {
-				c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", id, c.config.ConsumerGroup)
+	consumerId := ""
+	if c.config.ConsumerGroup != "" {
+		c.log.Info().Msgf("checking for consumer group %s on each stream requested", c.config.ConsumerGroup)
+		consumerId = c.getConsumerId()
+		for _, stream := range c.streams {
+			groups, err := c.pool.XInfoGroups(context.Background(), stream).Result()
+			if err != nil && err.Error() != "ERR no such key" {
+				c.log.Error().Err(err).Msgf("could not query for consumer groups on stream %s", stream)
 			} else {
-				c.log.Info().Msgf("created consumer %s on stream %s with status %d", id, stream, count)
-				// streamArgs = append(streamArgs, stream, ">")
-				streamArgs = append(streamArgs, stream)
+				var found bool
+				for _, g := range groups {
+					if g.Name == "dedb:client:consumer_group:"+c.config.ConsumerGroup {
+						found = true
+					}
+				}
+
+				groupName := "dedb:client:consumer_group:" + c.config.ConsumerGroup
+				if !found {
+					c.log.Info().Msgf("consumer group %s not found, creating it", c.config.ConsumerGroup)
+					status, err := c.pool.XGroupCreateMkStream(context.Background(), stream, groupName, "$").Result()
+					if err != nil {
+						c.log.Error().Err(err).Msgf("could not create group %s for stream %s", c.config.ConsumerGroup, stream)
+					} else {
+						c.log.Info().Msgf("connecting to stream %s with group %s resulted in status %s", stream, c.config.ConsumerGroup, status)
+					}
+				}
+
+				// group established, now create consumer
+				count, err := c.pool.XGroupCreateConsumer(context.Background(), stream, groupName, consumerId).Result()
+				if err != nil {
+					c.log.Error().Err(err).Msgf("could not create consumer %s on group %s", consumerId, c.config.ConsumerGroup)
+				} else {
+					c.log.Info().Msgf("created consumer %s on stream %s with status %d", consumerId, stream, count)
+					// streamArgs = append(streamArgs, stream, ">")
+					streamArgs = append(streamArgs, stream)
+				}
 			}
 		}
 	}
 	l := len(streamArgs)
 	for i := 0; i < l; i++ {
-		streamArgs = append(streamArgs, ">")
+		if c.config.StartStreamId == "" {
+			streamArgs = append(streamArgs, ">")
+		} else {
+			streamArgs = append(streamArgs, c.config.StartStreamId)
+		}
 	}
+	if consumerId != "" {
+		c.readFromGroupStream(streamArgs, consumerId)
+	} else {
+		c.readFromStream(streamArgs)
+	}
+}
 
+func (c *Client) readFromStream(streamArgs []string) {
+	c.log.Info().Msgf("consumer established, reading streams...")
+	lastId := streamArgs[len(streamArgs)-1]
+	for c.shutdown == false {
+		streamArgs[len(streamArgs)-1] = lastId
+		args := &redis.XReadArgs{
+			Count:   1,
+			Block:   5 * time.Second,
+			Streams: streamArgs,
+		}
+
+		if c.shutdown == false {
+			result, err := c.pool.XRead(context.Background(), args).Result()
+			if err == nil || err == redis.Nil {
+				randomSleep()
+			} else if err != nil {
+				c.log.Error().Err(err).Msgf("error reading stream(s)")
+				c.errorChannel <- err
+			} else {
+				for _, stream := range result {
+					for _, msg := range stream.Messages {
+						values := msg.Values
+						lastId = msg.ID
+						msgData := values["data"]
+						event := &api.Event{}
+						err = Decode(event, msgData.(string))
+						if err != nil {
+							c.log.Error().Err(err).Msgf("could not decode message")
+							c.errorChannel <- err
+						} else {
+							event.StreamId = msg.ID
+							c.eventChannel <- event
+							/* don't remember why I'm doing this...
+							m := message{
+								id:     msg.ID,
+								stream: stream.Stream,
+							}
+							c.eventsReceived[event.Id] = m
+							*/
+						}
+					}
+				}
+			}
+		}
+	}
+	log.Info().Msg("shutdown invoked, stopping stream reads")
+}
+
+func (c *Client) readFromGroupStream(streamArgs []string, id string) {
 	// now read the streams
 	c.log.Info().Msgf("consumer established, reading streams...")
 	for c.shutdown == false {
@@ -184,7 +242,7 @@ func (c *Client) listenForEvents() {
 		// make sure shutdown was not called while waiting for block
 		if c.shutdown == false {
 			result, err := c.pool.XReadGroup(context.Background(), args).Result()
-			if err != nil && err == redis.Nil { // redis.Nil means nothing was there and that is ok
+			if err == nil || err == redis.Nil { // redis.Nil means nothing was there and that is ok
 				randomSleep() // little CPU saver (?)
 			} else if err != nil {
 				c.log.Error().Err(err).Msgf("error reading stream(s) for consumer %s", id)
@@ -201,12 +259,15 @@ func (c *Client) listenForEvents() {
 							c.log.Error().Err(err).Msgf("could not decode message")
 							c.errorChannel <- err
 						} else {
+							event.StreamId = msg.ID
 							c.eventChannel <- event
-							m := message{
-								id:     msg.ID,
-								stream: stream.Stream,
-							}
-							c.eventsReceived[event.Id] = m
+							/*
+								m := message{
+									id:     msg.ID,
+									stream: stream.Stream,
+								}
+								c.eventsReceived[event.Id] = m
+							*/
 						}
 					}
 				}
