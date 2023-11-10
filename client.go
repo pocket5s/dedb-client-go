@@ -43,19 +43,19 @@ func NewClient(config ClientConfig) (*Client, error) {
 	c.log = log.With().Str("logger", "DeDBClient").Logger()
 	c.eventsReceived = make(map[string]message, 0)
 
-	if config.ConsumerGroup != "" {
-		c.log.Info().Msgf("setting up consumer group %s", config.ConsumerGroup)
-		if len(config.Streams) == 0 {
-			return nil, fmt.Errorf("Streams config entry required")
-		}
-		c.streams = make([]string, 0)
-		for _, s := range config.Streams {
-			c.streams = append(c.streams, "dedb:stream:"+s)
-		}
-		c.eventChannel = config.EventChannel
-		c.errorChannel = config.ErrorChannel
-		// return nil, fmt.Errorf("ConsumerGroup config entry required")
+	// if config.ConsumerGroup != "" {
+	// c.log.Info().Msgf("setting up consumer group %s", config.ConsumerGroup)
+	if len(config.Streams) == 0 {
+		return nil, fmt.Errorf("Streams config entry required")
 	}
+	c.streams = make([]string, 0)
+	for _, s := range config.Streams {
+		c.streams = append(c.streams, "dedb:stream:"+s)
+	}
+	c.eventChannel = config.EventChannel
+	c.errorChannel = config.ErrorChannel
+	// return nil, fmt.Errorf("ConsumerGroup config entry required")
+	//}
 
 	return c, nil
 }
