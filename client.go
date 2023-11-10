@@ -101,15 +101,15 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 
 	// connect to redis server
-	if c.config.ConsumerGroup != "" {
-		pool, err := newPool(false, c.config, &c.log)
-		if err != nil {
-			return err
-		}
-		c.pool = pool
-		c.log.Info().Msg("connected to redis")
-		go c.listenForEvents()
+	// if c.config.ConsumerGroup != "" {
+	pool, err := newPool(false, c.config, &c.log)
+	if err != nil {
+		return err
 	}
+	c.pool = pool
+	c.log.Info().Msg("connected to redis")
+	go c.listenForEvents()
+	//}
 	return nil
 }
 
