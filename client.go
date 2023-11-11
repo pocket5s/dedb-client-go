@@ -199,6 +199,7 @@ func (c *Client) readFromStream(streamArgs []string) {
 				c.log.Error().Err(err).Msgf("error reading stream(s)")
 				c.errorChannel <- err
 			} else {
+				c.log.Info().Msgf("got result")
 				for _, stream := range result {
 					for _, msg := range stream.Messages {
 						values := msg.Values
