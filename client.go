@@ -207,7 +207,7 @@ func (c *Client) readFromStream() {
 			streamArgs[idx+length] = c.streamIds[val]
 		}
 
-		c.log.Info().Msgf("stream args: %v", streamArgs)
+		// c.log.Info().Msgf("stream args: %v", streamArgs)
 		args := &redis.XReadArgs{
 			Count:   1,
 			Block:   5 * time.Second,
