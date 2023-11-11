@@ -204,7 +204,7 @@ func (c *Client) readFromStream() {
 	length := len(c.streams)
 	for c.shutdown == false {
 		for idx, val := range c.streams {
-			streamArgs[idx*length] = c.streamIds[val]
+			streamArgs[idx+length] = c.streamIds[val]
 		}
 
 		c.log.Info().Msgf("stream args: %v", streamArgs)
