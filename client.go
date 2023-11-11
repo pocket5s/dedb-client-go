@@ -194,7 +194,7 @@ func (c *Client) readFromStream(streamArgs []string) {
 		if c.shutdown == false {
 			result, err := c.pool.XRead(context.Background(), args).Result()
 			c.log.Info().Msgf("result: %v", result)
-			if err == nil || err == redis.Nil {
+			if err != nil && err == redis.Nil {
 				randomSleep()
 			} else if err != nil {
 				c.log.Error().Err(err).Msgf("error reading stream(s)")
