@@ -43,11 +43,14 @@ func NewClient(config ClientConfig) (*Client, error) {
 	c := &Client{config: config}
 	c.log = log.With().Str("logger", "DeDBClient").Logger()
 	c.eventsReceived = make(map[string]message, 0)
-	c.streamIds = config.StreamIds
-	if len(c.streamIds) == 0 {
-		c.streamIds = make(map[string]string, 0)
+	c.streamIds = make(map[string]string, 0)
+	if len(config.StreamIds) == 0 {
 		for _, v := range config.Streams {
 			c.streamIds["dedb:stream:"+v] = "0-0"
+		}
+	} else {
+		for k, v := range config.StreamIds {
+			c.streamIds["dedb:stream:"+k] = v
 		}
 	}
 
@@ -193,7 +196,7 @@ func (c *Client) listenForEvents() {
 func (c *Client) readFromStream() {
 	c.log.Info().Msgf("consumer established, reading streams %v", c.config.Streams)
 	// lastId := streamArgs[len(streamArgs)-1]
-	streamArgs := make([]string, len(c.config.Streams)*2)
+	streamArgs := make([]string, len(c.streams)*2)
 	for i, k := range c.streams {
 		streamArgs[i] = k
 	}
