@@ -181,7 +181,7 @@ func (c *Client) listenForEvents() {
 }
 
 func (c *Client) readFromStream(streamArgs []string) {
-	c.log.Info().Msgf("consumer established, reading streams...")
+	c.log.Info().Msgf("consumer established, reading streams with args %v", streamArgs)
 	lastId := streamArgs[len(streamArgs)-1]
 	for c.shutdown == false {
 		streamArgs[len(streamArgs)-1] = lastId
