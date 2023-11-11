@@ -162,6 +162,8 @@ func (c *Client) listenForEvents() {
 				}
 			}
 		}
+	} else {
+		streamArgs = c.streams
 	}
 	l := len(streamArgs)
 	for i := 0; i < l; i++ {
@@ -174,7 +176,7 @@ func (c *Client) listenForEvents() {
 	if consumerId != "" {
 		c.readFromGroupStream(streamArgs, consumerId)
 	} else {
-		c.readFromStream(streamArgs)
+		c.readFromStream(c.streams)
 	}
 }
 
