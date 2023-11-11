@@ -29,6 +29,7 @@ type Client struct {
 	log            zerolog.Logger
 	shutdown       bool
 	streams        []string
+	streamIds      map[string]string
 	eventChannel   chan<- *api.Event
 	errorChannel   chan<- error
 	eventsReceived map[string]message
@@ -42,6 +43,13 @@ func NewClient(config ClientConfig) (*Client, error) {
 	c := &Client{config: config}
 	c.log = log.With().Str("logger", "DeDBClient").Logger()
 	c.eventsReceived = make(map[string]message, 0)
+	c.streamIds = config.StreamIds
+	if len(c.streamIds) == 0 {
+		c.streamIds = make(map[string]string, 0)
+		for _, v := range config.Streams {
+			c.streamIds["dedb:stream:"+v] = "0-0"
+		}
+	}
 
 	// if config.ConsumerGroup != "" {
 	// c.log.Info().Msgf("setting up consumer group %s", config.ConsumerGroup)
@@ -166,25 +174,36 @@ func (c *Client) listenForEvents() {
 		streamArgs = c.streams
 	}
 	l := len(streamArgs)
-	for i := 0; i < l; i++ {
-		if c.config.StartStreamId == "" {
-			streamArgs = append(streamArgs, ">")
-		} else {
-			streamArgs = append(streamArgs, c.config.StartStreamId)
+	/*
+		for i := 0; i < l; i++ {
+			if c.config.StartStreamId == "" {
+				streamArgs = append(streamArgs, ">")
+			} else {
+				streamArgs = append(streamArgs, c.config.StartStreamId)
+			}
 		}
-	}
+	*/
 	if consumerId != "" {
 		c.readFromGroupStream(streamArgs, consumerId)
 	} else {
-		c.readFromStream(streamArgs)
+		c.readFromStream()
 	}
 }
 
-func (c *Client) readFromStream(streamArgs []string) {
-	c.log.Info().Msgf("consumer established, reading streams with args %v", streamArgs)
-	lastId := streamArgs[len(streamArgs)-1]
+func (c *Client) readFromStream() {
+	c.log.Info().Msgf("consumer established, reading streams %v", c.config.Streams)
+	// lastId := streamArgs[len(streamArgs)-1]
+	streamArgs := make([]string, len(c.config.Streams)*2)
+	for i, k := range c.streams {
+		streamArgs[i] = k
+	}
+	length := len(c.streams)
 	for c.shutdown == false {
-		streamArgs[len(streamArgs)-1] = lastId
+		for idx, val := range c.streams {
+			streamArgs[idx*length] = c.streamIds[val]
+		}
+
+		c.log.Info().Msgf("stream args: %v", streamArgs)
 		args := &redis.XReadArgs{
 			Count:   1,
 			Block:   5 * time.Second,
@@ -202,7 +221,6 @@ func (c *Client) readFromStream(streamArgs []string) {
 				for _, stream := range result {
 					for _, msg := range stream.Messages {
 						values := msg.Values
-						lastId = msg.ID
 						msgData := values["data"]
 						event := &api.Event{}
 						err = Decode(event, msgData.(string))
@@ -211,7 +229,7 @@ func (c *Client) readFromStream(streamArgs []string) {
 							c.errorChannel <- err
 						} else {
 							event.StreamId = msg.ID
-							lastId = msg.ID
+							c.streamIds["dedb:stream:"+event.Domain] = msg.ID
 							c.eventChannel <- event
 							/* don't remember why I'm doing this...
 							m := message{
