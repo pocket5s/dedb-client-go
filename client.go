@@ -173,15 +173,15 @@ func (c *Client) listenForEvents() {
 	} else {
 		streamArgs = c.streams
 	}
-	l := len(streamArgs)
 	/*
-		for i := 0; i < l; i++ {
-			if c.config.StartStreamId == "" {
-				streamArgs = append(streamArgs, ">")
-			} else {
-				streamArgs = append(streamArgs, c.config.StartStreamId)
+		l := len(streamArgs)
+			for i := 0; i < l; i++ {
+				if c.config.StartStreamId == "" {
+					streamArgs = append(streamArgs, ">")
+				} else {
+					streamArgs = append(streamArgs, c.config.StartStreamId)
+				}
 			}
-		}
 	*/
 	if consumerId != "" {
 		c.readFromGroupStream(streamArgs, consumerId)
