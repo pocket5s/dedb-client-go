@@ -63,6 +63,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 	for _, s := range config.Streams {
 		c.streams = append(c.streams, "dedb:stream:"+s)
 	}
+	c.log.Info().Msgf("streams to process: %v", c.streams)
 	c.eventChannel = config.EventChannel
 	c.errorChannel = config.ErrorChannel
 	// return nil, fmt.Errorf("ConsumerGroup config entry required")
@@ -194,7 +195,7 @@ func (c *Client) listenForEvents() {
 }
 
 func (c *Client) readFromStream() {
-	c.log.Info().Msgf("consumer established, reading streams %v", c.config.Streams)
+	c.log.Info().Msgf("consumer established, reading streams %v", c.streams)
 	// lastId := streamArgs[len(streamArgs)-1]
 	streamArgs := make([]string, len(c.streams)*2)
 	for i, k := range c.streams {
