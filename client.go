@@ -213,6 +213,8 @@ func (c *Client) readFromStream(streamArgs []string) {
 							c.errorChannel <- err
 						} else {
 							event.StreamId = msg.ID
+							lastId = msg.ID
+							c.log.Info().Msgf("sending event to channel")
 							c.eventChannel <- event
 							/* don't remember why I'm doing this...
 							m := message{
