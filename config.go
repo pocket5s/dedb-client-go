@@ -35,8 +35,8 @@ type ClientConfig struct {
 	RedisSearchConfig RedisSearchConfig
 	Server            string
 	Streams           []string
+	StreamIds         map[string]string
 	ConsumerGroup     string
 	EventChannel      chan<- *api.Event
 	ErrorChannel      chan<- error
-	StartStreamId     string
 }
