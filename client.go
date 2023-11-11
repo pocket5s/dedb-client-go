@@ -193,14 +193,12 @@ func (c *Client) readFromStream(streamArgs []string) {
 
 		if c.shutdown == false {
 			result, err := c.pool.XRead(context.Background(), args).Result()
-			c.log.Info().Msgf("result: %v", result)
 			if err != nil && err == redis.Nil {
 				randomSleep()
 			} else if err != nil {
 				c.log.Error().Err(err).Msgf("error reading stream(s)")
 				c.errorChannel <- err
 			} else {
-				c.log.Info().Msgf("got result")
 				for _, stream := range result {
 					for _, msg := range stream.Messages {
 						values := msg.Values
@@ -214,7 +212,6 @@ func (c *Client) readFromStream(streamArgs []string) {
 						} else {
 							event.StreamId = msg.ID
 							lastId = msg.ID
-							c.log.Info().Msgf("sending event to channel")
 							c.eventChannel <- event
 							/* don't remember why I'm doing this...
 							m := message{
