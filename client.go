@@ -176,7 +176,7 @@ func (c *Client) listenForEvents() {
 	if consumerId != "" {
 		c.readFromGroupStream(streamArgs, consumerId)
 	} else {
-		c.readFromStream(c.streams)
+		c.readFromStream(streamArgs)
 	}
 }
 
